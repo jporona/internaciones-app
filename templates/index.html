@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internaciones</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f0f2f5; color: #333; }
+
+        header {
+            background: #1a73e8;
+            color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        header h1 { font-size: 1.4rem; }
+        header span { font-size: 0.9rem; opacity: 0.85; }
+        .cache-badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: bold;
+            background: rgba(255,255,255,0.2);
+            margin-left: 0.5rem;
+        }
+        .btn-refresh {
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.4);
+            color: white;
+            padding: 0.35rem 0.9rem;
+            border-radius: 5px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            text-decoration: none;
+            margin-left: 1rem;
+        }
+        .btn-refresh:hover { background: rgba(255,255,255,0.25); }
+
+        main { padding: 2rem; max-width: 1200px; margin: 0 auto; }
+
+        .error {
+            background: #fdecea;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+        }
+
+        .stats {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+            flex: 1;
+        }
+        .stat-card .value { font-size: 2rem; font-weight: bold; color: #1a73e8; }
+        .stat-card .label { font-size: 0.85rem; color: #666; margin-top: 0.2rem; }
+
+        .search-bar {
+            margin-bottom: 1.2rem;
+        }
+        .search-bar input {
+            width: 100%;
+            padding: 0.6rem 1rem;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+        thead { background: #1a73e8; color: white; }
+        thead th {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        tbody tr { border-bottom: 1px solid #eee; }
+        tbody tr:last-child { border-bottom: none; }
+        tbody tr:hover { background: #f5f9ff; }
+        tbody td { padding: 0.7rem 1rem; font-size: 0.9rem; }
+
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: bold;
+        }
+        .badge-uti { background: #fde8e8; color: #c0392b; }
+        .badge-neo { background: #e8f4fd; color: #2980b9; }
+        .badge-other { background: #eafaf1; color: #27ae60; }
+
+        .empty { text-align: center; padding: 3rem; color: #888; }
+
+        /* Paginación */
+        .paginacion {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 1.2rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .paginacion .info { font-size: 0.88rem; color: #555; }
+        .paginacion .controles { display: flex; gap: 0.3rem; }
+        .paginacion a, .paginacion span {
+            display: inline-block;
+            padding: 0.4rem 0.75rem;
+            border-radius: 5px;
+            font-size: 0.88rem;
+            text-decoration: none;
+            border: 1px solid #ddd;
+            background: white;
+            color: #1a73e8;
+        }
+        .paginacion a:hover { background: #e8f0fe; }
+        .paginacion span.actual {
+            background: #1a73e8;
+            color: white;
+            border-color: #1a73e8;
+            font-weight: bold;
+        }
+        .paginacion span.deshabilitado { color: #aaa; cursor: default; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Internaciones</h1>
+    {% if not error %}
+    <div style="display:flex; align-items:center;">
+        <span>{{ total }} registro(s) en total</span>
+        <a href="/cache/limpiar?redirect=1" class="btn-refresh" title="Forzar actualización de datos">&#x21bb; Actualizar datos</a>
+    </div>
+    {% endif %}
+</header>
+
+<main>
+    {% if error %}
+    <div class="error">
+        <strong>Error al conectar con la API:</strong> {{ error }}
+    </div>
+    {% else %}
+
+    <div class="stats">
+        <div class="stat-card">
+            <div class="value">{{ total }}</div>
+            <div class="label">Total internaciones</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ pagina }} / {{ total_paginas }}</div>
+            <div class="label">Página actual</div>
+        </div>
+        <div class="stat-card">
+            <div class="value">{{ por_pagina }}</div>
+            <div class="label">Registros por página</div>
+        </div>
+    </div>
+
+    <div class="search-bar">
+        <input type="text" id="searchInput" placeholder="Buscar en esta página..." onkeyup="filtrar()">
+    </div>
+
+    {% if internaciones %}
+    <table id="tabla">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Cama</th>
+                <th>Planta</th>
+                <th>Diagnóstico</th>
+                <th>Cobertura</th>
+                <th>Ingreso</th>
+                <th>Egreso</th>
+                <th>Días cama</th>
+                <th>Destino egreso</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for i in internaciones %}
+            <tr>
+                <td>{{ i.id_hospitalizacion }}</td>
+                <td><strong>{{ i.CAMA }}</strong></td>
+                <td>
+                    {% if i.PLANTA == 'UTI' %}
+                        <span class="badge badge-uti">{{ i.PLANTA }}</span>
+                    {% elif i.PLANTA == 'NEO' %}
+                        <span class="badge badge-neo">{{ i.PLANTA }}</span>
+                    {% else %}
+                        <span class="badge badge-other">{{ i.PLANTA }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ i.diagnostico or '—' }}</td>
+                <td>{{ i.cobertura or '—' }}</td>
+                <td>{{ i.fecha_ingreso or '—' }}</td>
+                <td>{{ i.fecha_egreso or '—' }}</td>
+                <td>{{ i.DIAS_CAMA }}</td>
+                <td>{{ i.FS_Descripcion or '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="paginacion">
+        <div class="info">
+            Mostrando {{ (pagina - 1) * por_pagina + 1 }}–{{ [(pagina * por_pagina), total] | min }} de {{ total }} registros
+        </div>
+        <div class="controles">
+            {% if pagina > 1 %}
+                <a href="?pagina=1">&laquo;</a>
+                <a href="?pagina={{ pagina - 1 }}">&lsaquo;</a>
+            {% else %}
+                <span class="deshabilitado">&laquo;</span>
+                <span class="deshabilitado">&lsaquo;</span>
+            {% endif %}
+
+            {% for p in range([1, pagina - 2] | max, [total_paginas + 1, pagina + 3] | min) %}
+                {% if p == pagina %}
+                    <span class="actual">{{ p }}</span>
+                {% else %}
+                    <a href="?pagina={{ p }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+
+            {% if pagina < total_paginas %}
+                <a href="?pagina={{ pagina + 1 }}">&rsaquo;</a>
+                <a href="?pagina={{ total_paginas }}">&raquo;</a>
+            {% else %}
+                <span class="deshabilitado">&rsaquo;</span>
+                <span class="deshabilitado">&raquo;</span>
+            {% endif %}
+        </div>
+    </div>
+
+    {% else %}
+    <div class="empty">No se encontraron registros.</div>
+    {% endif %}
+
+    {% endif %}
+</main>
+
+<script>
+function filtrar() {
+    const filtro = document.getElementById("searchInput").value.toLowerCase();
+    const filas = document.querySelectorAll("#tabla tbody tr");
+    filas.forEach(fila => {
+        fila.style.display = fila.textContent.toLowerCase().includes(filtro) ? "" : "none";
+    });
+}
+</script>
+
+</body>
+</html>
